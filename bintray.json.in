@@ -1,0 +1,29 @@
+{
+    "package": {
+        "name": "@CPACK_PACKAGE_NAME@",
+        "repo": "otuscpp",
+        "subject": "andreyshaj",
+        "labels": ["bulkmt", "otuscpp", "otus"],
+        "public_download_numbers": false,
+        "public_stats": false
+    },
+
+    "version": {
+        "name": "@CPACK_PACKAGE_VERSION@",
+        "desc": "",
+        "gpgSign": false
+    },
+
+    "files":
+    [
+        {
+            "includePattern": "\./(@CPACK_PACKAGE_NAME@-@CPACK_PACKAGE_VERSION@-Linux\.deb)",
+            "uploadPattern": "https://api.bintray.com/andreyshaj/otuscpp/@CPACK_PACKAGE_NAME@/@CPACK_PACKAGE_VERSION@/$1",
+            "matrixParams": {
+                "deb_distribution": "trusty",
+                "deb_component": "main",
+                "deb_architecture": "amd64"}
+            }
+    ],
+    "publish": true
+}

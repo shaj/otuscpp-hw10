@@ -1,0 +1,30 @@
+language: cpp
+before_script:
+  - sudo apt-get install libboost-test-dev -y
+  - sudo apt-get install libboost-program-options-dev -y
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update -y
+  - sudo apt-get install gcc-7 -y
+  - sudo apt-get install g++-7 -y
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+  - sudo apt-get install doxygen -y
+  - sudo apt-get install graphviz -y
+script:
+  - cmake .
+  - cmake --build .
+  - cmake --build . --target test
+  - cmake --build . --target package
+  - doxygen
+deploy:
+  - provider: bintray
+    file: bintray.json
+    user: shaj
+    key: $BINTRAY_API_KEY
+    skip_cleanup: true
+  - provider: pages
+    skip_cleanup: true
+    github-token: $GITHUB_TOKEN
+    keep-history: true
+    local-dir: ./pages/html
+    on:
+      branch: master
