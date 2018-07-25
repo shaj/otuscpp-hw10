@@ -4,7 +4,9 @@
 #include <iostream>
 #include "log.h"
 #include "version.h"
+#include "metr.h"
 #include "bulk.h"
+#include "tp.h"
 
 
 #include <boost/program_options.hpp>
@@ -23,7 +25,7 @@ int main (int argc, char* argv[])
 {
 	try
 	{
-		my::my_logger = spdlog::basic_logger_st("mainlogger", "bulk.log", true);
+		my::my_logger = spdlog::basic_logger_mt("mainlogger", "bulk.log", true);
 		my::my_logger->set_level(spdlog::level::info);
 		my::my_logger->info(" -=- Start bulk");
 
@@ -31,8 +33,9 @@ int main (int argc, char* argv[])
 		descr.add_options()
 			("help,h", "Produce help message")
 			("version,v", "Version")
-			("debug,d", "Enable loggigng")
+			("debug,d", "Enable tracing")
 			("bulk,b", po::value<std::size_t>()->default_value(3)->notifier(set_bulk), "bulk size")
+			("thread-pool,p", po::value<std::size_t>()->default_value(3), "thread pool size")
 		;
 
 		po::positional_options_description p;
@@ -63,16 +66,30 @@ int main (int argc, char* argv[])
 		}
 
 
+		// my::my_logger->info("Thread pool size {}; bulk size {}", vm["thread-pool"].as<size_t>(), vm["bulk"].as<size_t>());
 
+		auto m_main = std::make_shared<Metr>();
+		auto tpool  = std::make_shared<ThreadPool>(vm["thread-pool"].as<size_t>());
 
-		auto reader = std::make_shared<Bulk_Reader>(std::cin, vm["bulk"].as<size_t>());
+		auto reader = std::make_shared<Bulk_Reader>(std::cin, vm["bulk"].as<size_t>(), tpool);
 		auto console = Con_Printer::create(reader);
 		auto file = File_Printer::create(reader);
 
-		reader->process();
+		SPDLOG_TRACE(my::my_logger, "main   start process");
 
+		reader->process(m_main);
 
+		SPDLOG_TRACE(my::my_logger, "main   end process");
 
+		tpool->join();
+
+		SPDLOG_TRACE(my::my_logger, "main   end join");
+
+		std::cout << "\nmain поток - " << m_main->str_cnt << 
+				" строк, " << m_main->cmd_cnt <<
+				" команд, " << m_main->blk_cnt << " блоков" << std::endl;
+
+		SPDLOG_TRACE(my::my_logger, "main   end report");
 
 		my::my_logger->info(" -=- End bulk");
 

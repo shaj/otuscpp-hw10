@@ -17,7 +17,7 @@ struct F
     F()           
     {
     	std::cout << "Create logger" << std::endl; 
-		my::my_logger = spdlog::basic_logger_st("mainlogger", "bulk.log", true);
+		my::my_logger = spdlog::basic_logger_mt("mainlogger", "bulk.log", true);
 		my::my_logger->set_level(spdlog::level::info);
     }
     ~F()         
@@ -46,7 +46,7 @@ public:
 	}
 
 
-	void update(Bulk &b) override
+	void print(const Bulk &b, std::shared_ptr<Metr> metr) override
 	{
 		result.push_back(b.size());
 	}

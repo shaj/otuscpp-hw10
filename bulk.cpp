@@ -8,6 +8,7 @@
 
 #include "bulk.h"
 #include "log.h"
+#include "tp.h"
 
 
 Bulk::Bulk()
@@ -59,21 +60,21 @@ void Bulk::update_id()
 	m_id = std::to_string((long long)t);
 }
 
-std::string Bulk::id()
+std::string Bulk::id() const
 {
 	SPDLOG_TRACE(my::my_logger, "std::string Bulk::id");
 
 	return m_id;
 }
 
-std::size_t Bulk::size()
+std::size_t Bulk::size() const
 {
 	SPDLOG_TRACE(my::my_logger, "std::size_t Bulk::size");
 
 	return data.size();
 }
 
-std::string Bulk::to_str()
+std::string Bulk::to_str() const
 {
 	SPDLOG_TRACE(my::my_logger, "std::string Bulk::to_str");
 
@@ -92,10 +93,11 @@ std::string Bulk::to_str()
 }
 
 
-Bulk_Reader::Bulk_Reader(std::istream &_is, std::size_t c) : 
+Bulk_Reader::Bulk_Reader(std::istream &_is, std::size_t c, std::shared_ptr<ThreadPool> tp) : 
 		is(_is), 
 		bulk_size(c),
-		level(0)
+		level(0),
+		tpool(tp)
 {
 	SPDLOG_TRACE(my::my_logger, "Bulk_Reader::Bulk_Reader");
 
@@ -129,16 +131,17 @@ void Bulk_Reader::remove_printer(const std::weak_ptr<Bulk_Printer> &prt)
 	// https://stackoverflow.com/q/28338978
 }
 
-void Bulk_Reader::process()
+void Bulk_Reader::process(std::shared_ptr<Metr> m)
 {
 	SPDLOG_TRACE(my::my_logger, "void Bulk_Reader::process()");
-
+	metr = m;
 	if(is)
 	{
 		std::string str;
 		create_bulk();
 		while(std::getline(is, str))
 		{
+			if(metr) metr->str_cnt++;
 			append_bulk(str);
 		}
 		close_bulk();
@@ -174,6 +177,7 @@ void Bulk_Reader::append_bulk(const std::string &s)
 		}
 		else if(bulk_cnt)
 		{
+			if(metr) metr->cmd_cnt++;
 			(--bulks.end())->append(s);
 			bulk_cnt--;
 			if(bulk_cnt == 0)
@@ -199,7 +203,11 @@ void Bulk_Reader::append_bulk(const std::string &s)
 				create_bulk();
 			}
 		}
-		else (--bulks.end())->append(s);
+		else
+		{
+			if(metr) metr->cmd_cnt++;
+			(--bulks.end())->append(s);
+		}
 	}
 }
 
@@ -211,16 +219,26 @@ void Bulk_Reader::close_bulk()
 		notify(*(--bulks.end()));
 }
 
-void Bulk_Reader::notify(Bulk &b)
+void Bulk_Reader::notify(const Bulk &b)
 {
 	SPDLOG_TRACE(my::my_logger, "void Bulk_Reader::notify");
 
 	if(b.size() != 0)
 	{
+		if(metr) metr->blk_cnt++;
 		for(const auto &it: printers)
 		{
 			if(auto prt = it.lock())
-				prt->update(b);
+				if(tpool)
+				{
+					// tpool->msgs_put(&prt->print, std::ref(b));
+					tpool->msgs_put([&](auto al, auto &bl, auto cl)
+						{ al->print(bl, cl);}, prt, std::ref(b));
+				}
+				else
+				{
+					prt->print(b);
+				}
 			else my::my_logger->warn("Bulk_Printer expired now");
 		}
 	}
@@ -235,7 +253,7 @@ Con_Printer::Con_Printer(const std::weak_ptr<Bulk_Reader> &r)
 	reader = r;
 }
 
-void Con_Printer::update(Bulk &b) 
+void Con_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr) 
 {
 	SPDLOG_TRACE(my::my_logger, "void Con_Printer::update");
 
@@ -243,10 +261,17 @@ void Con_Printer::update(Bulk &b)
 	{
 		std::cout << "bulk: " << b.to_str() << std::endl;
 	}
+	if(metr)
+	{
+		metr->blk_cnt++;
+		metr->cmd_cnt += b.size();
+	}
 }
 
 std::shared_ptr<Con_Printer> Con_Printer::create(const std::weak_ptr<Bulk_Reader> &r)
 {
+	SPDLOG_TRACE(my::my_logger, "static Con_Printer::create");
+
 	auto ret = std::shared_ptr<Con_Printer>(new Con_Printer(r));
 	r.lock()->add_printer(ret);
 	return ret;
@@ -262,7 +287,7 @@ File_Printer::File_Printer(const std::weak_ptr<Bulk_Reader> &r)
 	reader = r;
 }
 
-void File_Printer::update(Bulk &b) 
+void File_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr) 
 {
 	SPDLOG_TRACE(my::my_logger, "void File_Printer::update");
 
@@ -308,11 +333,19 @@ void File_Printer::update(Bulk &b)
 			my::my_logger->error("File_Printer can not write data to file");
 			throw std::runtime_error("File_Printer can not write data to file");
 		}
+		
+		if(metr)
+		{
+			metr->blk_cnt++;
+			metr->cmd_cnt += b.size();
+		}
 	}
 }
 
 std::shared_ptr<File_Printer> File_Printer::create(const std::weak_ptr<Bulk_Reader> &r)
 {
+	SPDLOG_TRACE(my::my_logger, "static File_Printer::create");
+
 	auto ret = std::shared_ptr<File_Printer>(new File_Printer(r));
 	r.lock()->add_printer(ret);
 	return ret;

@@ -10,7 +10,7 @@ before_script:
   - sudo apt-get install doxygen -y
   - sudo apt-get install graphviz -y
 script:
-  - cmake .
+  - cmake . -DCMAKE_BUILD_TYPE=MinSizeRel
   - cmake --build .
   - cmake --build . --target test
   - cmake --build . --target package
