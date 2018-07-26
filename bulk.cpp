@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <ctime>
+#include <mutex>
 // #include <cstdio>
 
 #include "bulk.h"
@@ -246,6 +247,7 @@ void Bulk_Reader::notify(const Bulk &b)
 
 
 
+std::mutex Con_Printer::con_m;
 
 Con_Printer::Con_Printer(const std::weak_ptr<Bulk_Reader> &r)
 {
@@ -257,9 +259,12 @@ void Con_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr)
 {
 	SPDLOG_TRACE(my::my_logger, "void Con_Printer::update");
 
+	std::string str;
 	if(b.size() != 0)
 	{
-		std::cout << "bulk: " << b.to_str() << std::endl;
+		str = b.to_str();
+		std::lock_guard<std::mutex> lk_con(con_m);
+		std::cout << "bulk: " << str << "\n" << std::flush;
 	}
 	if(metr)
 	{
@@ -281,6 +286,8 @@ std::shared_ptr<Con_Printer> Con_Printer::create(const std::weak_ptr<Bulk_Reader
 
 
 
+std::mutex File_Printer::fs_m;
+
 File_Printer::File_Printer(const std::weak_ptr<Bulk_Reader> &r)
 {
 	SPDLOG_TRACE(my::my_logger, "File_Printer::File_Printer");
@@ -295,6 +302,9 @@ void File_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr)
 	{
 		std::string fname {"bulk" + b.id()};
 		std::fstream fs;
+
+		std::unique_lock<std::mutex> lk_fs(fs_m);
+
 		fs.open(fname + ".log", std::ios::in);
 		if(fs)
 		{
@@ -306,7 +316,7 @@ void File_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr)
 				fname_new = fname + "_" + std::to_string(cnt);
 				fs.open(fname_new + ".log");
 				cnt++;
-				if(cnt > 1000) throw std::logic_error("File_Printer can not create log file");
+				if(cnt > 100000) throw std::logic_error("File_Printer can not create log file");
 			}
 			fname = fname_new;
 		}
@@ -320,11 +330,13 @@ void File_Printer::print(const Bulk &b, std::shared_ptr<Metr> metr)
 		{ // Отсюда: https://stackoverflow.com/a/40057555
 			fso.exceptions(std::fstream::failbit | std::fstream::badbit);
 			fso.open(fname, std::ios::out);
+			lk_fs.unlock();
 			fso << "bulk: " << b.to_str();
 			fso.close();
 		}
 		catch (std::fstream::failure &e) 
 		{
+			lk_fs.unlock();
 			if(fso.is_open())
 			{
 				fso.close();

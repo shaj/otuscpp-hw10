@@ -4,6 +4,7 @@
 #include <list>
 #include <istream>
 #include <memory>
+#include <mutex>
 
 #include "metr.h"
 #include "tp.h"
@@ -78,6 +79,8 @@ public:
 
 class Con_Printer: public Bulk_Printer
 {
+	static std::mutex con_m;
+
 	Con_Printer() = delete;
 	Con_Printer(const std::weak_ptr<Bulk_Reader> &r);
 public:	
@@ -88,6 +91,8 @@ public:
 
 class File_Printer: public Bulk_Printer
 {
+	static std::mutex fs_m;
+
 	File_Printer() = delete;
 	File_Printer(const std::weak_ptr<Bulk_Reader> &r);
 public:	

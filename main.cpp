@@ -81,13 +81,29 @@ int main (int argc, char* argv[])
 
 		SPDLOG_TRACE(my::my_logger, "main   end process");
 
+		// Завершаем пул потоков для того, чтобы получить полную статистику
 		tpool->join();
 
 		SPDLOG_TRACE(my::my_logger, "main   end join");
 
 		std::cout << "\nmain поток - " << m_main->str_cnt << 
 				" строк, " << m_main->cmd_cnt <<
-				" команд, " << m_main->blk_cnt << " блоков" << std::endl;
+				" команд, " << m_main->blk_cnt << " блоков\n" << std::endl;
+
+		int ti = 0;
+		Metr m_summ;
+		for(const auto &it : tpool->get_metr())
+		{
+			std::cout << "Поток " << ti << " выполнен " << it->cnt << " раз. " << it->blk_cnt << " блоков. " << it->cmd_cnt << " команд.\n";
+			m_summ.cnt += it->cnt;
+			m_summ.str_cnt += it->str_cnt;
+			m_summ.blk_cnt += it->blk_cnt;
+			m_summ.cmd_cnt += it->cmd_cnt;
+			ti++;
+		}
+		std::cout << "\nСумма по потокам: " << m_summ.cnt << " вызовов. " << m_summ.str_cnt << " прочитано строк. "
+				<< m_summ.blk_cnt << " блоков. " << m_summ.cmd_cnt << " команд.\n";
+		std::cout << std::endl;
 
 		SPDLOG_TRACE(my::my_logger, "main   end report");
 

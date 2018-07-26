@@ -10,6 +10,7 @@
 
 #include "tp.h"
 #include "log.h"
+#include "metr.h"
 
 
 
@@ -19,19 +20,24 @@ ThreadPool::ThreadPool(std::size_t tn)
 	SPDLOG_TRACE(my::my_logger, "ThreadPool::ThreadPool");
 
 	tpool.reserve(tn);
+	tmetr.reserve(tn);
 
 	for(int i=0; i<tn; i++)
 	{
 		auto m = std::make_shared<Metr>();
-		tpool.emplace_back(std::thread {ThreadPool::worker, this, std::ref(msgs), m}, m);
+		tpool.emplace_back(std::thread {ThreadPool::worker, this, std::ref(msgs), m});
+		tmetr.emplace_back(m);
 	}
 
 }
 
 ThreadPool::~ThreadPool()
 {
-	SPDLOG_TRACE(my::my_logger, "ThreadPool::worker");
+	SPDLOG_TRACE(my::my_logger, "ThreadPool::~ThreadPool");
 
+	// quit = true;
+	// cv.notify_all();
+	// for(auto &it: tpool) it.join();
 	join();
 }
 
@@ -41,17 +47,19 @@ void ThreadPool::join()
 
 	quit = true;
 	cv.notify_all();
-	for(auto &it: tpool) it.first.join();
-
-	SPDLOG_TRACE(my::my_logger, "ThreadPool::join() END");
+	for(auto &it: tpool) 
+	{
+		SPDLOG_TRACE(my::my_logger, "ThreadPool::join    {}", static_cast<void*>(&it));
+		if(it.joinable()) it.join();
+		SPDLOG_TRACE(my::my_logger, "ThreadPool::join    3");
+	}
 }
 
 std::vector<std::shared_ptr<Metr>> ThreadPool::get_metr()
 {
 	SPDLOG_TRACE(my::my_logger, "ThreadPool::get_metr()");
 
-	throw new std::logic_error("Not implemented yet");
-	// return nullptr;
+	return tmetr;
 }
 
 
@@ -71,7 +79,7 @@ void ThreadPool::worker(ThreadPool *t, std::queue<fn_type> &q, std::shared_ptr<M
 			lk.unlock();
 
 			m(metr);
-			metr.cnt++;
+			metr->cnt++;
 		}
 	}
 }

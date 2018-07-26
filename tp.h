@@ -22,7 +22,8 @@ private:
 	std::queue<fn_type> msgs;
 	bool quit = false;
 
-	std::vector<std::pair<std::thread, std::shared_ptr<Metr> > > tpool;
+	std::vector<std::thread> tpool;
+	std::vector<std::shared_ptr<Metr>> tmetr;
 
 	ThreadPool() = delete;
 
