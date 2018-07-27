@@ -14,9 +14,10 @@
 class ThreadPool
 {
 public:
-	using fn_type = std::function<void(std::shared_ptr<Metr>)>;
 
 private:
+	using fn_type = std::function<void(std::shared_ptr<Metr>)>;
+
 	std::condition_variable cv;
 	std::mutex cv_m;
 	std::queue<fn_type> msgs;
@@ -34,6 +35,7 @@ public:
 
 	static void worker(ThreadPool *t, std::queue<fn_type> &q, std::shared_ptr<Metr> metr);
 
+	// Отсюда: https://habr.com/post/188234/
 	template<class _FN, class... _ARGS>
 	void msgs_put(_FN _fn, _ARGS... _args)
 	{

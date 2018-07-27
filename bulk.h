@@ -51,7 +51,7 @@ class Bulk_Reader
 	Bulk_Reader() = delete;
 
 public:
-	Bulk_Reader(std::istream &_is, std::size_t c, std::shared_ptr<ThreadPool> tp);
+	Bulk_Reader(std::istream &_is, std::size_t c, std::shared_ptr<ThreadPool> tp=nullptr);
 
 	void add_printer(const std::weak_ptr<Bulk_Printer> &p);
 	void remove_printer(const std::weak_ptr<Bulk_Printer> &p);
