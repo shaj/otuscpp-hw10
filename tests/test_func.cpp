@@ -1,8 +1,5 @@
 
 
-
-#define BOOST_LOG_DYN_LINK 1
-
 #define BOOST_TEST_MODULE test_func
 
 #include <boost/test/included/unit_test.hpp>
@@ -26,9 +23,9 @@ struct F
 };
  
 
-BOOST_AUTO_TEST_SUITE(bulk_func_test_suite)
+BOOST_TEST_GLOBAL_FIXTURE( F )
 
-BOOST_GLOBAL_FIXTURE( F )
+// BOOST_AUTO_TEST_SUITE(bulk_func_test_suite)
 
 BOOST_AUTO_TEST_CASE(test_bulk_class_id) 
 {
@@ -140,4 +137,6 @@ BOOST_AUTO_TEST_CASE(test_bulk_remove_printer)
 	BOOST_CHECK_NO_THROW(reader->process());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+// BOOST_AUTO_TEST_SUITE_END()
+//
+//

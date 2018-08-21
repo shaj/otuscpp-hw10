@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 
+set(CMAKE_C_COMPILER gcc)
+
 set(PRJ_NAME bulkmt)
 
 set(PATCH_VERSION 1)
@@ -34,7 +36,7 @@ if((NOT CMAKE_BUILD_TYPE) OR (${CMAKE_BUILD_TYPE} MATCHES "Debug"))
   message("SET DEBUG SPDLOG_TRACE_ON")
 endif()
 
-message(${CMAKE_BUILD_TYPE})
+message("Build type " ${CMAKE_BUILD_TYPE})
 
 install(TARGETS ${PRJ_NAME} RUNTIME DESTINATION bin)
 

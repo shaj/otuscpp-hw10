@@ -1,8 +1,5 @@
 
 
-
-#define BOOST_LOG_DYN_LINK 1
-
 #define BOOST_TEST_MODULE test_logic
 
 #include <boost/test/included/unit_test.hpp>
@@ -53,9 +50,10 @@ public:
 };
 
 
-BOOST_AUTO_TEST_SUITE(bulk_logic_test_suite)
 
-BOOST_GLOBAL_FIXTURE( F )
+// BOOST_AUTO_TEST_SUITE(bulk_logic_test_suite)
+
+// BOOST_TEST_GLOBAL_FIXTURE( ::F );
 
 BOOST_AUTO_TEST_CASE(test_bulk1) 
 {
@@ -254,4 +252,5 @@ BOOST_AUTO_TEST_CASE(test_bulk8)
 }
 
 
-BOOST_AUTO_TEST_SUITE_END()
+// BOOST_AUTO_TEST_SUITE_END()
+//
